@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contact/model/api_adapter.dart';
 import 'package:flutter_contact/model/model_quiz.dart';
 import 'package:flutter_contact/screen/screen_quiz.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -10,23 +13,23 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Quiz> quizs = [
-    Quiz.fromMap({
-      'title': 'test',
-      'candidates': ['a', 'b', 'c', 'd'],
-      'answer': 0
-    }),
-    Quiz.fromMap({
-      'title': 'test',
-      'candidates': ['a', 'b', 'c', 'd'],
-      'answer': 0
-    }),
-    Quiz.fromMap({
-      'title': 'test',
-      'candidates': ['a', 'b', 'c', 'd'],
-      'answer': 0
-    })
-  ];
+  List<Quiz> quizs = [];
+  bool isLoading = false;
+
+  _fetchQuizs() async {
+    setState(() {
+      isLoading = true;
+    });
+    final response = await http.get(Uri.parse('http://10.0.2.2:8000/quiz/3'));
+    if(response.statusCode == 200) {
+      setState(() {
+        quizs = parseQuizs(utf8.decode(response.bodyBytes));
+        isLoading = false;
+      });
+    } else {
+      throw Exception('failed to load data');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +68,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ElevatedButton(
                         child: Text('지금 퀴즈 풀기', style: TextStyle(color: Colors.white)),
                         onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuizScreen(quizs: quizs)));
+                          _fetchQuizs().whenComplete(() {
+                            return Navigator.push(context, MaterialPageRoute(builder: (context) => QuizScreen(quizs: quizs)));
+                          });
                         },
                     )
                   )
